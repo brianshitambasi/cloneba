@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: mjroberts-backend
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node app.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: ADMIN_EMAIL
+        value: admin@mjroberts.com
+      - key: HR_EMAIL
+        value: hr@mjroberts.com

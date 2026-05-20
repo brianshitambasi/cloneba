@@ -1,72 +1,26 @@
-const jwt = require("jsonwebtoken");
+const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET;
-
-// ==========================
-// AUTH MIDDLEWARE (JWT VERIFY)
-// ==========================
-const auth = (req, res, next) => {
+const auth = async (req, res, next) => {
   try {
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({ error: "No token provided" });
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    
+    if (!token) {
+      return res.status(401).json({ success: false, error: 'No token provided' });
     }
-
-    const token = authHeader.split(" ")[1];
-
-    const payload = jwt.verify(token, JWT_SECRET);
-
-    req.user = payload;
-
+    
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
     next();
   } catch (error) {
-    return res.status(401).json({ error: "Invalid or expired token" });
+    res.status(401).json({ success: false, error: 'Invalid token' });
   }
 };
 
-// ==========================
-// ROLE-BASED AUTHORIZATION
-// ==========================
-const authorizeRoles = (...allowedRoles) => {
-  return (req, res, next) => {
-    if (!req.user) {
-      return res.status(401).json({ error: "Not authenticated" });
-    }
-
-    if (!allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({
-        error: "Access denied: insufficient permissions",
-      });
-    }
-
-    next();
-  };
-};
-
-// ==========================
-// OWNERSHIP CHECK MIDDLEWARE
-// ==========================
-const checkOwnership = (req, res, next) => {
-  const userIdFromToken = req.user.id;
-  const userRole = req.user.role;
-  const userIdFromParams = req.params.id;
-
-  // allow admin always
-  if (userRole === "admin") return next();
-
-  // allow only self access
-  if (userIdFromToken !== userIdFromParams) {
-    return res.status(403).json({
-      error: "You can only access or modify your own account",
-    });
+const adminOnly = (req, res, next) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ success: false, error: 'Admin access required' });
   }
-
   next();
 };
 
-module.exports = {
-  auth,
-  authorizeRoles,
-  checkOwnership,
-};
+module.exports = { auth, adminOnly };
